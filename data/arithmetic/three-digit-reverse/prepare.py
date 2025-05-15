@@ -6,15 +6,11 @@ import pickle
 import requests
 import numpy as np
 
-train_file_path = os.path.join(os.path.dirname(__file__), 'train_single_digit_add.txt')
-test_file_path = os.path.join(os.path.dirname(__file__), 'test_single_digit_add.txt')
+input_file_path = os.path.join(os.path.dirname(__file__), 'train_three_digit_reverse_add.txt')
 
-with open(train_file_path, 'r') as f:
-    train = f.read()
-print(f"length of dataset in characters: {len(train):,}")
-
-with open(test_file_path, 'r') as f:
-    test = f.read()
+with open(input_file_path, 'r') as f:
+    data = f.read()
+print(f"length of dataset in characters: {len(data):,}")
 
 digits = [str(i) for i in range(10)]
 special = ['+','=','\n']
@@ -29,11 +25,13 @@ def decode(l):
     return ''.join([itos[i] for i in l]) # decoder: take a list of integers, output a string
 
 # create the train and test splits
-
+n = len(data)
+train_data = data[:int(n*0.9)]
+val_data = data[int(n*0.9):]
 
 # encode both to integers
-train_ids = encode(train)
-val_ids = encode(test)
+train_ids = encode(train_data)
+val_ids = encode(val_data)
 print(f"train has {len(train_ids):,} tokens")
 print(f"val has {len(val_ids):,} tokens")
 
@@ -51,3 +49,4 @@ meta = {
 }
 with open(os.path.join(os.path.dirname(__file__), 'meta.pkl'), 'wb') as f:
     pickle.dump(meta, f)
+

@@ -28,7 +28,7 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.distributed import init_process_group, destroy_process_group
 
 from model import GPTConfig, GPT
-
+from eval import eval_model
 # -----------------------------------------------------------------------------
 # default config values designed to train a gpt2 (124M) on OpenWebText
 # I/O
@@ -72,6 +72,8 @@ backend = 'nccl' # 'nccl', 'gloo', etc.
 device = 'cuda' # examples: 'cpu', 'cuda', 'cuda:0', 'cuda:1' etc., or try 'mps' on macbooks
 dtype = 'bfloat16' if torch.cuda.is_available() and torch.cuda.is_bf16_supported() else 'float16' # 'float32', 'bfloat16', or 'float16', the latter will auto implement a GradScaler
 compile = True # use PyTorch 2.0 to compile the model to be faster
+# -----------------------------------------------------------------------------
+test_file = 'test_three_digit_add.txt' # test file to evaluate the model
 # -----------------------------------------------------------------------------
 config_keys = [k for k,v in globals().items() if not k.startswith('_') and isinstance(v, (int, float, bool, str))]
 exec(open('configurator.py').read()) # overrides from command line or config file
@@ -129,6 +131,145 @@ def get_batch(split):
     else:
         x, y = x.to(device), y.to(device)
     return x, y
+
+# def get_batch_custom(split):
+#     # We recreate np.memmap every batch to avoid a memory leak
+#     if split == 'train':
+#         data = np.memmap(os.path.join(data_dir, 'train.bin'), dtype=np.uint16, mode='r')
+#     else:
+#         data = np.memmap(os.path.join(data_dir, 'val.bin'), dtype=np.uint16, mode='r')
+    
+#     eq_pos = np.where(data == 11)[0]  # Assuming 11 is the token for '='
+#     newline_pos = np.where(data == 12)[0]  # Assuming 12 is the token for '\n'
+
+#     if len(eq_pos) > 0:
+#         ix = torch.randint(len(eq_pos), (batch_size,))
+#     else:
+#         return None, None
+
+#     x = []
+#     y = []
+#     for i in ix:
+#         eq_index = eq_pos[i]
+#         if i > 0:
+#             start_index = newline_pos[i - 1] + 1
+#         else:
+#             start_index = 0
+
+#         newline_index = newline_pos[i]
+#         sequence = data[start_index:newline_index].astype(np.int64)
+
+#         # Adjust eq_index to be relative to the sequence
+#         relative_eq_index = eq_index - start_index
+
+#         # Ensure there is data after '='
+#         if relative_eq_index + 1 < len(sequence):
+#             x.append(torch.from_numpy(sequence[:relative_eq_index + 1]))  # Include '=' in the input
+#             # y.append(torch.from_numpy(sequence[relative_eq_index + 1:]))  # Everything after '='
+#             y.append(torch.from_numpy(sequence))
+#         else:
+#             print(f"Skipping sample with empty target: eq_index={eq_index}, sequence={sequence}")
+
+#     # Pad sequences to ensure consistent shape
+#     if len(x) > 0 and len(y) > 0:
+#         x = torch.nn.utils.rnn.pad_sequence(x, batch_first=True, padding_value=0)
+#         y = torch.nn.utils.rnn.pad_sequence(y, batch_first=True, padding_value=-100)  # Use -100 for ignored tokens
+
+#         # Ensure y matches the length of x (if required)
+#         # if x.size(1) > y.size(1):
+#         #     padding = torch.full((y.size(0), x.size(1) - y.size(1)), -100, dtype=torch.long)
+#         #     y = torch.cat([y, padding], dim=1)
+#         if y.size(1) > x.size(1):
+#             padding = torch.full((x.size(0), y.size(1) - x.size(1)), -100, dtype=torch.long)
+#             x = torch.cat([x, padding], dim=1)
+#     else:
+#         raise ValueError("No valid samples found in the batch!")
+
+#     # Move to device
+#     if device_type == 'cuda':
+#         x, y = x.pin_memory().to(device, non_blocking=True), y.pin_memory().to(device, non_blocking=True)
+#     else:
+#         x, y = x.to(device), y.to(device)
+
+#     return x, y
+
+def get_batch_custom(split):
+    # We recreate np.memmap every batch to avoid a memory leak
+    if split == 'train':
+        data = np.memmap(os.path.join(data_dir, 'train.bin'), dtype=np.uint16, mode='r')
+    else:
+        data = np.memmap(os.path.join(data_dir, 'val.bin'), dtype=np.uint16, mode='r')
+    
+    eq_pos = np.where(data == 11)[0]  # Assuming 11 is the token for '='
+    newline_pos = np.where(data == 12)[0]  # Assuming 12 is the token for '\n'
+
+    if len(eq_pos) == 0:
+        raise ValueError("No equals sign found in the data!")
+    
+    # Randomly select batch_size equations
+    ix = torch.randint(len(eq_pos), (batch_size,))
+
+    x = []
+    y = []
+    for i in ix:
+        eq_index = eq_pos[i]
+        
+        # Find the start of the current line
+        if i > 0 and eq_index > newline_pos[0]:
+            # Find the last newline before this equals sign
+            prev_newlines = newline_pos[newline_pos < eq_index]
+            if len(prev_newlines) > 0:
+                start_index = prev_newlines[-1] + 1
+            else:
+                start_index = 0
+        else:
+            start_index = 0
+            
+        # Find the end of the current line
+        next_newlines = newline_pos[newline_pos > eq_index]
+        if len(next_newlines) > 0:
+            end_index = next_newlines[0]
+        else:
+            end_index = len(data)
+            
+        # Extract the full sequence for this equation
+        full_sequence = data[start_index:end_index+1].astype(np.int64)
+        
+        # Find the position of equals sign within this sequence
+        eq_pos_in_seq = eq_index - start_index
+        
+        if eq_pos_in_seq + 1 < len(full_sequence):  # Make sure there's content after the equals sign
+            # Input: everything up to and including the equals sign
+            input_seq = full_sequence
+            
+            # Target: everything after the equals sign
+            target = full_sequence.copy()
+            # Set all positions before and including equals sign to -100 (ignore in loss)
+            target[:eq_pos_in_seq+1] = -100
+            
+            x.append(torch.from_numpy(input_seq))
+            y.append(torch.from_numpy(target))
+        else:
+            print(f"Skipping sample with empty target at index {i}")
+    
+    if len(x) == 0 or len(y) == 0:
+        raise ValueError("No valid samples found in the batch!")
+    
+    # Pad sequences for consistent shape in the batch
+    x_padded = torch.nn.utils.rnn.pad_sequence(x, batch_first=True, padding_value=0)
+    
+    # For targets, use -100 as padding which is typically ignored in cross-entropy loss
+    y_padded = torch.nn.utils.rnn.pad_sequence(y, batch_first=True, padding_value=-100)
+    
+    # Move to device
+    if device_type == 'cuda':
+        x_padded = x_padded.pin_memory().to(device, non_blocking=True)
+        y_padded = y_padded.pin_memory().to(device, non_blocking=True)
+    else:
+        x_padded = x_padded.to(device)
+        y_padded = y_padded.to(device)
+    
+    return x_padded, y_padded
 
 # init these up here, can override if init_from='resume' (i.e. from a checkpoint)
 iter_num = 0
@@ -263,6 +404,7 @@ while True:
     if iter_num % eval_interval == 0 and master_process:
         losses = estimate_loss()
         print(f"step {iter_num}: train loss {losses['train']:.4f}, val loss {losses['val']:.4f}")
+        eval_model(model, device, dataset, test_file)
         if wandb_log:
             wandb.log({
                 "iter": iter_num,
