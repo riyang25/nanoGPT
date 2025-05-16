@@ -3,7 +3,7 @@ from model import GPT
 import os
 import random
 
-def eval_model(model, device, dataset, test_file):
+def eval_model(model, device, dataset, test_file, iter_num, log_file=None, loss=None):
     model.eval()
     data_dir = os.path.join('data', dataset)
     test_file = os.path.join(data_dir, test_file)
@@ -65,4 +65,10 @@ def eval_model(model, device, dataset, test_file):
     char_accuracy = correct_chars / total_chars * 100
     print(f"Accuracy: {accuracy:.2f}%")
     print(f"Character Accuracy: {char_accuracy:.2f}%")
+    if log_file:
+        log_file = os.path.join('./training-logs', log_file)
+        with open(log_file, "a") as f:
+            f.write(f"Iteration {iter_num}:\n")
+            f.write(f"Accuracy: {accuracy:.2f}%\n")
+            f.write(f"Character Accuracy: {char_accuracy:.2f}%\n")
     return accuracy, char_accuracy

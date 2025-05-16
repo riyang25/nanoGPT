@@ -1,7 +1,7 @@
 # train a miniature character-level shakespeare model
 # good for debugging and playing on macbooks and such
 
-out_dir = 'out-three-digit-reverse-add'
+out_dir = 'out-three-digit-reverse-add-custom-batch'
 eval_interval = 250 # keep frequent because we'll overfit
 eval_iters = 50
 log_interval = 10 # don't print too too often
@@ -33,7 +33,8 @@ beta2 = 0.99 # make a bit bigger because number of tokens per iter is small
 warmup_iters = 100 # not super necessary potentially
 
 test_file = 'test_three_digit_reverse_add.txt'
-
+custom_batch = True
+log_file = 'log.txt'
 # on macbook also add
 device = 'mps'  # run on cpu only
 compile = False # do not torch compile the model

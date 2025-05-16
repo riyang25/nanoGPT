@@ -3,8 +3,8 @@ import random
 def generate_random_additions(filename="./data/arithmetic/three-digit-reverse/train_three_digit_reverse_add.txt", num_lines=1000):
     with open(filename, "w") as f:
         for _ in range(num_lines):
-            x = random.randint(0, 1000)
-            y = random.randint(0, 1000)
+            x = random.randint(0,999)
+            y = random.randint(0,999)
             sumreverse = str(x + y).zfill(4)[::-1]
             x = str(x).zfill(3)
             y = str(y).zfill(3)
