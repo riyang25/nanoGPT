@@ -2,7 +2,7 @@
 # good for debugging and playing on macbooks and such
 
 out_dir = 'out-single-digit-add'
-eval_interval = 250 # keep frequent because we'll overfit
+eval_interval = 50 # keep frequent because we'll overfit
 eval_iters = 20
 log_interval = 10 # don't print too too often
 
@@ -31,6 +31,8 @@ min_lr = 1e-4 # learning_rate / 10 usually
 beta2 = 0.99 # make a bit bigger because number of tokens per iter is small
 
 warmup_iters = 100 # not super necessary potentially
+
+test_file = 'test_single_digit_add.txt'
 
 # on macbook also add
 device = 'mps'  # run on cpu only

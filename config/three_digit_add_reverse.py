@@ -1,7 +1,7 @@
 # train a miniature character-level shakespeare model
 # good for debugging and playing on macbooks and such
 
-out_dir = 'out-three-digit-reverse-add-custom-batch'
+out_dir = 'out-three-digit-reverse-padded'
 eval_interval = 250 # keep frequent because we'll overfit
 eval_iters = 50
 log_interval = 10 # don't print too too often
@@ -10,10 +10,10 @@ log_interval = 10 # don't print too too often
 always_save_checkpoint = False
 
 wandb_log = False # override via command line if you like
-wandb_project = 'three-digit-add-reverse'
+wandb_project = 'three-digit-add-reverse-padded'
 wandb_run_name = 'mini'
 
-dataset = 'arithmetic/three-digit-reverse'
+dataset = 'arithmetic/three-digit-reverse-padded'
 gradient_accumulation_steps = 1
 batch_size = 64
 block_size = 27 # context of up to n previous characters
@@ -34,7 +34,7 @@ warmup_iters = 100 # not super necessary potentially
 
 test_file = 'test_three_digit_reverse_add.txt'
 custom_batch = True
-log_file = 'log.txt'
+ #log_file = 'log.txt'
 # on macbook also add
 device = 'mps'  # run on cpu only
 compile = False # do not torch compile the model

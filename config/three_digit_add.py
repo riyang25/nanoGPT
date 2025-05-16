@@ -31,7 +31,7 @@ min_lr = 1e-4 # learning_rate / 10 usually
 beta2 = 0.99 # make a bit bigger because number of tokens per iter is small
 
 warmup_iters = 100 # not super necessary potentially
-
+test_file = 'test_three_digit_add.txt'
 # on macbook also add
 device = 'mps'  # run on cpu only
 compile = False # do not torch compile the model

@@ -345,12 +345,14 @@ while True:
     if iter_num % eval_interval == 0 and master_process:
         losses = estimate_loss()
         print(f"step {iter_num}: train loss {losses['train']:.4f}, val loss {losses['val']:.4f}")
-        eval_model(model, device, dataset, test_file, iter_num, log_file)
+        accuracy, char_accuracy = eval_model(model, device, dataset, test_file, iter_num, log_file)
         if wandb_log:
             wandb.log({
                 "iter": iter_num,
                 "train/loss": losses['train'],
                 "val/loss": losses['val'],
+                "accuracy": accuracy,
+                "char_accuracy": char_accuracy,
                 "lr": lr,
                 "mfu": running_mfu*100, # convert to percentage
             })
