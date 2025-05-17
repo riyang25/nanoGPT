@@ -8,7 +8,7 @@ model_dirs = [
     "out-single-digit-add",
     "out-three-digit-add",
     "out-three-digit-reverse-add-custom-batch",
-    "out-three-digit-reverse"
+    "out-three-digit-reverse-add"
 ]
 
 # Common settings
@@ -17,13 +17,13 @@ test_file = {
     "out-single-digit-add":"test_single_digit_add.txt",
     "out-three-digit-add":"test_three_digit_add.txt",
     "out-three-digit-reverse-add-custom-batch":"test_three_digit_reverse_add.txt",
-    "out-three-digit-reverse":"test_three_digit_reverse_add.txt"
+    "out-three-digit-reverse-add":"test_three_digit_reverse_add.txt"
 }
 dataset = {
     "out-single-digit-add":"arithmetic/single-digit",
     "out-three-digit-add":"arithmetic/three-digit",
-    "out-three-digit-reverse-add-custom-batch":"arithmetic/three-digit-reverse",
-    "out-three-digit-reverse":"arithmetic/three-digit-reverse"
+    "out-three-digit-reverse-add-custom-batch":"arithmetic/three-digit-reverse-padded",
+    "out-three-digit-reverse":"arithmetic/three-digit-reverse-padded"
 }
 iter_num = 0  # Iteration number for logging (can be adjusted as needed)
 
